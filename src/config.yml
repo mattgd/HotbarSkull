@@ -1,0 +1,2 @@
+# Slot to put the player skull in (0 for first hotbar slot, 8 for last)
+skull-slot: 0

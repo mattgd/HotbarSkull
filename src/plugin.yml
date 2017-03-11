@@ -1,0 +1,16 @@
+name: HotbarSkull
+version: ${project.version}
+main: me.mattgd.hotbarskull.HotbarSkull
+author: mattgd
+description: A plugin for running giving players untouchable versions of their skulls.
+
+commands:
+   hotbarskull:
+      description: Command to manually give players their skull.
+      usage: /<command> [args]
+      permission: hotbarskull.give
+      aliases: [barskull]
+permissions:
+   hotbarskull.give:
+      description: Allows you to manually give players their skull
+      default: op
