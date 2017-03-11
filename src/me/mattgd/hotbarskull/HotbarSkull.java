@@ -34,6 +34,12 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 	public void onEnable() {
  		saveDefaultConfig(); // Create default the configuration if config.yml doesn't exist
  		skullSlot = getConfig().getInt("skull-slot", 0);
+ 		
+ 		// Disallow invalid slots
+ 		if (skullSlot < 0 || skullSlot > 45) {
+ 			throw new IllegalArgumentException("Skull slot must be greater than or equal to zero and less than 46.");
+ 		}
+ 		
 		getCommand("hotbarskull").setExecutor(this); // Setup commands
 		getServer().getPluginManager().registerEvents(this, this);
 		getLogger().info("Enabled!");
@@ -125,19 +131,28 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 	}
 	
 	/**
+	 * Removes existing player skulls from the player's
+	 * inventory if they exists.
+	 * @param p The player to remove skulls from.
+	 */
+	private void removeSkull(Player p) {
+		ItemStack skull = getPlayerSkull(p);
+		p.getInventory().remove(skull);
+	}
+	
+	/**
 	 * Gives players their player skull on join.
 	 * @param e The PlayerJoinEvent instance.
 	 */
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent e) {
+		Player p = e.getPlayer();
 		PlayerInventory inv = e.getPlayer().getInventory();
 		
+		removeSkull(p);
+		
 		if (inv != null) {
-			ItemStack item = inv.getItem(skullSlot);
-
-			if (item == null || !inv.getItem(skullSlot).getType().equals(Material.SKULL_ITEM)) {
-				inv.setItem(skullSlot, getPlayerSkull(e.getPlayer()));
-			}
+			inv.setItem(skullSlot, getPlayerSkull(p));
 		}
 	}
 	
@@ -152,11 +167,10 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 		
 		Inventory inv = e.getClickedInventory();
 		ItemStack item = e.getCurrentItem();
+		Player p = (Player) e.getWhoClicked();
 		
-		if (inv != null && item != null) {
-			if (e.getSlot() == skullSlot && item.getType().equals(Material.SKULL_ITEM)) {
-				e.setCancelled(true);
-			}
+		if (inv != null && item != null && isSkullOwner(p, item)) {
+			e.setCancelled(true);
 		}
 	}
 	
@@ -171,13 +185,31 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 		
 		ItemStack item = e.getItemDrop().getItemStack();
 
-		if (item != null && item.getType().equals(Material.SKULL_ITEM) && item.hasItemMeta()) {
-			SkullMeta sm = (SkullMeta) item.getItemMeta();
-			
-			if (sm.getOwner().equals(e.getPlayer().getName())) {
-				e.setCancelled(true);
-			}
+		if (item != null && isSkullOwner(e.getPlayer(), item)) {
+			e.setCancelled(true);
 		}
     }
+	
+	/**
+	 * Returns true if the player is the skull owner, and false
+	 * if the item is not a skull or the skull has no meta.
+	 * @param p The Player to check ownership of.
+	 * @param item The ItemStack to check.
+	 * @return true if the player is the skull owner, and false
+	 * if the item is not a skull or the skull has no meta.
+	 */
+	private boolean isSkullOwner(Player p, ItemStack item) {
+		if (item.getType().equals(Material.SKULL_ITEM)) {
+			if (item.hasItemMeta()) {
+				SkullMeta sm = (SkullMeta) item.getItemMeta();
+				
+				if (sm.getOwner().equals(p.getName())) {
+					return true;
+				}
+			}
+		}
+			
+		return false;
+	}
 	
 }
