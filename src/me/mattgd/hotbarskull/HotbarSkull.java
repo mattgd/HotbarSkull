@@ -34,7 +34,7 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 	public void onEnable() {
  		saveDefaultConfig(); // Create default the configuration if config.yml doesn't exist
  		skullSlot = getConfig().getInt("skull-slot", 0);
-		getCommand("startup").setExecutor(this); // Setup commands
+		getCommand("hotbarskull").setExecutor(this); // Setup commands
 		getServer().getPluginManager().registerEvents(this, this);
 		getLogger().info("Enabled!");
 	}
@@ -62,6 +62,12 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 		} else if (args.length == 1) {
 			if (args[0].equalsIgnoreCase("give")) {
 				msg.severe(sender, "You must specify a player to give a skull to.");
+			} else if (args[0].equalsIgnoreCase("giveall")) {
+				for (Player p : Bukkit.getServer().getOnlinePlayers()) {
+					p.getInventory().setItem(skullSlot, getPlayerSkull(p));
+				}
+				
+				msg.good(sender, "All online players have been given their skulls.");
 			} else if (args[0].equalsIgnoreCase("help")) {
 				msg.good(sender, helpMessage());
 			} else {
@@ -79,12 +85,6 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 					p.getInventory().setItem(skullSlot, getPlayerSkull(p));
 					msg.good(sender, p.getName() + " has been given their skull.");
 				}
-			} else if (args[0].equalsIgnoreCase("giveall")) {
-				for (Player p : Bukkit.getServer().getOnlinePlayers()) {
-					p.getInventory().setItem(skullSlot, getPlayerSkull(p));
-				}
-				
-				msg.good(sender, "All online players have been given their skulls.");
 			} else {
 				msg.severe(sender, "Invalid command usage. Type /hotbarskull help for help.");
 			}
@@ -103,8 +103,8 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 		MessageManager msg = MessageManager.getInstance();
 		String msgStr = msg.messageTitle("HotbarSkull Help", ChatColor.AQUA, ChatColor.YELLOW);
 		
-		msgStr += "\n&a/hotbarskull give <player> &7- &amanually give a player their skull in the configuration specified inventory slot"
-				+ "\n&a/hotbarskull giveall &7- &agive all online players their skull in the configuration specified inventory slot";
+		msgStr += "\n&b/hotbarskull give <player> &7- &amanually give a player their skull in the configuration specified inventory slot"
+				+ "\n&b/hotbarskull giveall &7- &agive all online players their skull in the configuration specified inventory slot";
 		
 		msgStr += msg.messageTrail(ChatColor.YELLOW); // Add message trail
 		return msgStr;
@@ -133,7 +133,9 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 		PlayerInventory inv = e.getPlayer().getInventory();
 		
 		if (inv != null) {
-			if (!inv.getContents()[skullSlot].getType().equals(Material.SKULL_ITEM)) {
+			ItemStack item = inv.getItem(skullSlot);
+
+			if (item == null || !inv.getItem(skullSlot).getType().equals(Material.SKULL_ITEM)) {
 				inv.setItem(skullSlot, getPlayerSkull(e.getPlayer()));
 			}
 		}
@@ -168,10 +170,13 @@ public class HotbarSkull extends JavaPlugin implements Listener {
 			return;
 		
 		ItemStack item = e.getItemDrop().getItemStack();
-		
-		if (item.getType().equals(Material.SKULL_ITEM) 
-				&& item.getItemMeta().getDisplayName().equals(e.getPlayer().getName())) {
-			e.setCancelled(true);
+
+		if (item != null && item.getType().equals(Material.SKULL_ITEM) && item.hasItemMeta()) {
+			SkullMeta sm = (SkullMeta) item.getItemMeta();
+			
+			if (sm.getOwner().equals(e.getPlayer().getName())) {
+				e.setCancelled(true);
+			}
 		}
     }
 	
